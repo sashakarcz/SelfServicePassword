@@ -113,7 +113,7 @@ password_policy:
 docker-compose up -d
 ```
 
-4. Access the application at `http://localhost:8080`
+4. Access the application at `http://localhost:8081`
 
 ### Manual Installation
 
