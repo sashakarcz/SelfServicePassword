@@ -269,9 +269,43 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 4. Add tests for new functionality
 5. Submit a pull request
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### "Confidentiality Required" Error
+- **Problem**: `LDAP Result Code 13 "Confidentiality Required": Operation requires a secure connection`
+- **Solution**: Enable TLS in your config:
+  ```yaml
+  ldap:
+    use_tls: true  # Required for FreeIPA password changes
+    insecure_skip_verify: true  # For self-signed certificates
+  ```
+- FreeIPA and many LDAP servers require secure connections for password modifications
+- Use `insecure_skip_verify: true` for self-signed certificates (development only)
+- For production, use valid certificates and set `insecure_skip_verify: false`
+
+#### LDAP Connection Errors
+- Verify LDAP server hostname and port
+- Check bind DN and password
+- Ensure network connectivity
+- Validate user base DN
+- For FreeIPA, ensure the service account has proper permissions
+
+#### SSH Key Errors
+- For FreeIPA: use `ssh_key_attr: "ipaSshPubKey"`
+- For OpenLDAP: use `ssh_key_attr: "sshPublicKey"`
+- Ensure your LDAP schema supports SSH key attributes
+
+#### Email/SMS Not Working
+- Verify SMTP credentials and connectivity
+- Check Apprise server configuration
+- Validate phone number formats
+- Review firewall settings
+
 ## Support
 
 For issues and questions:
 - Check the GitHub issues
-- Review the configuration documentation
+- Review the configuration documentation  
 - Ensure your LDAP schema includes required attributes

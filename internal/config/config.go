@@ -17,17 +17,18 @@ type Config struct {
 }
 
 type LDAPConfig struct {
-	Host           string `mapstructure:"host"`
-	Port           int    `mapstructure:"port"`
-	UseTLS         bool   `mapstructure:"use_tls"`
-	BaseDN         string `mapstructure:"base_dn"`
-	BindDN         string `mapstructure:"bind_dn"`
-	BindPassword   string `mapstructure:"bind_password"`
-	UserFilter     string `mapstructure:"user_filter"`
-	UserBaseDN     string `mapstructure:"user_base_dn"`
-	SSHKeyAttr     string `mapstructure:"ssh_key_attr"`
-	EmailAttr      string `mapstructure:"email_attr"`
-	PhoneAttr      string `mapstructure:"phone_attr"`
+	Host             string `mapstructure:"host"`
+	Port             int    `mapstructure:"port"`
+	UseTLS           bool   `mapstructure:"use_tls"`
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify"`
+	BaseDN           string `mapstructure:"base_dn"`
+	BindDN           string `mapstructure:"bind_dn"`
+	BindPassword     string `mapstructure:"bind_password"`
+	UserFilter       string `mapstructure:"user_filter"`
+	UserBaseDN       string `mapstructure:"user_base_dn"`
+	SSHKeyAttr       string `mapstructure:"ssh_key_attr"`
+	EmailAttr        string `mapstructure:"email_attr"`
+	PhoneAttr        string `mapstructure:"phone_attr"`
 }
 
 type EmailConfig struct {
@@ -77,6 +78,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("site_name", "LDAP Self-Service Portal")
 	viper.SetDefault("ldap.port", 389)
 	viper.SetDefault("ldap.use_tls", false)
+	viper.SetDefault("ldap.insecure_skip_verify", false)
 	viper.SetDefault("ldap.user_filter", "(uid=%s)")
 	viper.SetDefault("ldap.ssh_key_attr", "sshPublicKey")
 	viper.SetDefault("ldap.email_attr", "mail")

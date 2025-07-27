@@ -28,8 +28,23 @@ func (s *LDAPService) Connect() (*ldap.Conn, error) {
 	var conn *ldap.Conn
 	var err error
 	
+	// Configure TLS settings
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: s.config.LDAP.InsecureSkipVerify,
+		ServerName:         s.config.LDAP.Host,
+	}
+	
 	if s.config.LDAP.UseTLS {
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: false})
+		if s.config.LDAP.Port == 636 {
+			// Direct TLS connection (LDAPS)
+			conn, err = ldap.DialTLS("tcp", addr, tlsConfig)
+		} else {
+			// StartTLS on standard port (usually 389)
+			conn, err = ldap.Dial("tcp", addr)
+			if err == nil {
+				err = conn.StartTLS(tlsConfig)
+			}
+		}
 	} else {
 		conn, err = ldap.Dial("tcp", addr)
 	}
