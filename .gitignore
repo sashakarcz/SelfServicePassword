@@ -1,0 +1,98 @@
+# Configuration files with secrets
+config.yaml
+config.yml
+.env
+.env.local
+.env.production
+.claude/
+
+# Build artifacts
+sspr
+sspr.exe
+*.exe
+*.dll
+*.so
+*.dylib
+dist/
+build/
+
+# Go build cache
+*.test
+*.out
+*.prof
+
+# Debug and temporary files
+debug-*
+temp-*
+*.tmp
+*.log
+*.pid
+
+# SSL/TLS certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+ssl/
+certs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+config.yaml.bak*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker volumes and data
+docker-data/
+volumes/
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Vendor directory (if using go mod vendor)
+vendor/
+
+# Local development files
+docker-compose.override.yml
+.local/
+
+# Session and cache files
+sessions/
+cache/
+*.session
+
+# LDAP debug files
+ldap-debug.log
+
+# Apprise config files (may contain secrets)
+apprise.yml
+apprise.yaml
+
+# Local scripts
+local-*.sh
+dev-*.sh

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/material.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div class="login-page" id="loginApp">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>Sign In</h2>
+                    <p>Access your {{.site_name}} account</p>
+                </div>
+                
+                <form @submit.prevent="login" class="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            v-model="username" 
+                            required 
+                            class="form-control"
+                            :disabled="loading"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            v-model="password" 
+                            required 
+                            class="form-control"
+                            :disabled="loading"
+                        >
+                    </div>
+                    
+                    <div v-if="error" class="alert alert-error">
+                        {{`{{ error }}`}}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-large btn-block" :disabled="loading">
+                        <span v-if="loading" class="loading-spinner"></span>
+                        <i v-else class="material-icons">login</i>
+                        {{`{{ loading ? 'Signing In...' : 'Sign In' }}`}}
+                    </button>
+                </form>
+                
+                <div class="login-footer">
+                    <a href="/reset">Forgot your password?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="/static/js/app.js"></script>
+
+    <script>
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                username: '',
+                password: '',
+                loading: false,
+                error: ''
+            }
+        },
+        methods: {
+            async login() {
+                this.loading = true;
+                this.error = '';
+                
+                try {
+                    const response = await axios.post('/api/v1/login', {
+                        username: this.username,
+                        password: this.password
+                    });
+                    
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    
+                    window.location.href = '/dashboard';
+                } catch (error) {
+                    this.error = error.response?.data?.error || 'Login failed';
+                } finally {
+                    this.loading = false;
+                }
+            }
+        }
+    }).mount('#loginApp');
+    </script>
+
+    <style>
+    .login-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .login-header h2 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+        color: #666;
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .btn-block {
+        width: 100%;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .alert {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+    }
+
+    .alert-error {
+        background-color: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .login-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .login-footer a:hover {
+        text-decoration: underline;
+    }
+    </style>
+</body>
+</html>

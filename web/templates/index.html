@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/material.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div class="landing-page">
+        <div class="hero-section">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">{{.site_name}}</h1>
+                    <p class="hero-subtitle">Manage your account, update passwords, and configure SSH keys</p>
+                    <div class="hero-actions">
+                        <a href="/login" class="btn btn-primary btn-large">
+                            <i class="material-icons">login</i>
+                            Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="features-section">
+            <div class="container">
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="material-icons">security</i>
+                        </div>
+                        <h3>Secure Authentication</h3>
+                        <p>Connect securely to your LDAP directory with multi-factor authentication support</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="material-icons">vpn_key</i>
+                        </div>
+                        <h3>Password Management</h3>
+                        <p>Update your password with email and SMS verification for enhanced security</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="material-icons">computer</i>
+                        </div>
+                        <h3>SSH Key Management</h3>
+                        <p>Add, remove, and manage your SSH public keys for secure server access</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .landing-page {
+        min-height: 100vh;
+    }
+
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 100px 0;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    .hero-actions {
+        margin-top: 2rem;
+    }
+
+    .features-section {
+        padding: 80px 0;
+        background: #f5f5f5;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .feature-card h3 {
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .feature-card p {
+        color: #555;
+        line-height: 1.6;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .feature-icon {
+        background: #667eea;
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+
+    .feature-icon i {
+        font-size: 24px;
+    }
+    </style>
+</body>
+</html>

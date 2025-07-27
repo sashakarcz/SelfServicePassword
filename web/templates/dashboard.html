@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/material.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div class="dashboard-page" id="dashboardApp">
+        <!-- Loading State -->
+        <div v-if="!user.username" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div v-else>
+            <!-- Navigation -->
+            <nav class="navbar">
+                <div class="nav-container">
+                    <div class="nav-brand">
+                        <h3>{{.site_name}}</h3>
+                    </div>
+                    <div class="nav-user">
+                        <span>Welcome, {{`{{ user.firstName || 'User' }} {{ user.lastName || '' }}`}}</span>
+                        <button @click="toggleTheme" class="btn btn-outline theme-toggle" :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+                            <i class="material-icons">{{`{{ isDarkMode ? 'light_mode' : 'dark_mode' }}`}}</i>
+                        </button>
+                        <button @click="logout" class="btn btn-outline">
+                            <i class="material-icons">logout</i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+        <!-- Main Content -->
+        <div class="dashboard-content">
+            <div class="container">
+                <!-- Profile Section -->
+                <div class="section">
+                    <h2>Profile Information</h2>
+                    <div class="profile-card">
+                        <div class="profile-info">
+                            <div class="info-item">
+                                <label>Username:</label>
+                                <span>{{`{{ user.username || 'N/A' }}`}}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Email:</label>
+                                <span>{{`{{ user.email || 'N/A' }}`}}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Phone:</label>
+                                <span>{{`{{ user.phone || 'N/A' }}`}}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Last Login:</label>
+                                <span>{{`{{ user.lastLogin ? formatDate(user.lastLogin) : 'Never' }}`}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password Change Section -->
+                <div class="section">
+                    <h2>Change Password</h2>
+                    <div class="password-card">
+                        <form @submit.prevent="changePassword" class="password-form">
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <input 
+                                    type="password" 
+                                    v-model="passwordForm.currentPassword" 
+                                    required 
+                                    class="form-control"
+                                    :disabled="passwordLoading"
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input 
+                                    type="password" 
+                                    v-model="passwordForm.newPassword" 
+                                    required 
+                                    minlength="3"
+                                    maxlength="30"
+                                    class="form-control"
+                                    :disabled="passwordLoading"
+                                >
+                                <small class="form-text text-muted">
+                                    Password must be 3-30 characters long
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <input 
+                                    type="password" 
+                                    v-model="passwordForm.confirmPassword" 
+                                    required 
+                                    class="form-control"
+                                    :disabled="passwordLoading"
+                                >
+                            </div>
+                            
+                            <div v-if="passwordError" class="alert alert-error">
+                                {{`{{ passwordError }}`}}
+                            </div>
+                            
+                            <div v-if="passwordSuccess" class="alert alert-success">
+                                {{`{{ passwordSuccess }}`}}
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary" :disabled="passwordLoading">
+                                <span v-if="passwordLoading" class="loading-spinner"></span>
+                                <i v-else class="material-icons">security</i>
+                                {{`{{ passwordLoading ? 'Changing...' : 'Change Password' }}`}}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- SSH Keys Section -->
+                <div class="section">
+                    <h2>SSH Keys</h2>
+                    <div class="ssh-keys-card">
+                        <div class="ssh-keys-header">
+                            <button @click="showAddKeyForm = !showAddKeyForm" class="btn btn-primary">
+                                <i class="material-icons">add</i>
+                                Add SSH Key
+                            </button>
+                        </div>
+                        
+                        <!-- Add Key Form -->
+                        <div v-if="showAddKeyForm" class="add-key-form">
+                            <form @submit.prevent="addSSHKey">
+                                <div class="form-group">
+                                    <label>Key Name</label>
+                                    <input 
+                                        type="text" 
+                                        v-model="sshKeyForm.name" 
+                                        required 
+                                        class="form-control"
+                                        placeholder="e.g., Work Laptop"
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label>Public Key</label>
+                                    <textarea 
+                                        v-model="sshKeyForm.publicKey" 
+                                        required 
+                                        class="form-control" 
+                                        rows="4"
+                                        placeholder="ssh-rsa AAAAB3NzaC1yc2E..."
+                                    ></textarea>
+                                </div>
+                                
+                                <div v-if="sshKeyError" class="alert alert-error">
+                                    {{`{{ sshKeyError }}`}}
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary" :disabled="sshKeyLoading">
+                                        <span v-if="sshKeyLoading" class="loading-spinner"></span>
+                                        <i v-else class="material-icons">save</i>
+                                        {{`{{ sshKeyLoading ? 'Adding...' : 'Add Key' }}`}}
+                                    </button>
+                                    <button type="button" @click="cancelAddKey" class="btn btn-outline">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- SSH Keys List -->
+                        <div class="ssh-keys-list">
+                            <div v-if="user.sshKeys && user.sshKeys.length === 0" class="empty-state">
+                                <i class="material-icons">computer</i>
+                                <p>No SSH keys configured</p>
+                            </div>
+                            
+                            <div v-for="(key, index) in user.sshKeys || []" :key="index" class="ssh-key-item">
+                                <div class="key-info">
+                                    <h4>{{`{{ key.name }}`}}</h4>
+                                    <p class="key-fingerprint">{{`{{ key.fingerprint }}`}}</p>
+                                    <p class="key-preview">{{`{{ getKeyPreview(key.publicKey) }}`}}</p>
+                                    <span class="key-date">Added {{`{{ formatDate(key.createdAt) }}`}}</span>
+                                </div>
+                                <div class="key-actions">
+                                    <button @click="deleteSSHKey(index)" class="btn btn-danger-outline">
+                                        <i class="material-icons">delete</i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div> <!-- End v-else block -->
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="/static/js/app.js"></script>
+
+    <script>
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                user: JSON.parse(localStorage.getItem('user') || '{}'),
+                isDarkMode: localStorage.getItem('darkMode') === 'true',
+                passwordForm: {
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                },
+                sshKeyForm: {
+                    name: '',
+                    publicKey: ''
+                },
+                showAddKeyForm: false,
+                passwordLoading: false,
+                passwordError: '',
+                passwordSuccess: '',
+                sshKeyLoading: false,
+                sshKeyError: ''
+            }
+        },
+        mounted() {
+            this.checkAuth();
+            this.loadProfile();
+            this.applyTheme();
+        },
+        methods: {
+            toggleTheme() {
+                this.isDarkMode = !this.isDarkMode;
+                localStorage.setItem('darkMode', this.isDarkMode.toString());
+                this.applyTheme();
+            },
+            
+            applyTheme() {
+                document.documentElement.setAttribute('data-theme', this.isDarkMode ? 'dark' : 'light');
+            },
+            
+            checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            },
+            
+            async loadProfile() {
+                try {
+                    const response = await axios.get('/api/v1/profile');
+                    this.user = response.data;
+                    localStorage.setItem('user', JSON.stringify(this.user));
+                } catch (error) {
+                    if (error.response?.status === 401) {
+                        this.logout();
+                    }
+                }
+            },
+            
+            async changePassword() {
+                if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+                    this.passwordError = 'Passwords do not match';
+                    return;
+                }
+                
+                this.passwordLoading = true;
+                this.passwordError = '';
+                this.passwordSuccess = '';
+                
+                try {
+                    await axios.put('/api/v1/password', this.passwordForm);
+                    this.passwordSuccess = 'Password changed successfully';
+                    this.passwordForm = {
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    };
+                } catch (error) {
+                    this.passwordError = error.response?.data?.error || 'Failed to change password';
+                } finally {
+                    this.passwordLoading = false;
+                }
+            },
+            
+            async addSSHKey() {
+                this.sshKeyLoading = true;
+                this.sshKeyError = '';
+                
+                try {
+                    await axios.post('/api/v1/ssh-keys', this.sshKeyForm);
+                    this.showAddKeyForm = false;
+                    this.sshKeyForm = { name: '', publicKey: '' };
+                    await this.loadProfile();
+                } catch (error) {
+                    this.sshKeyError = error.response?.data?.error || 'Failed to add SSH key';
+                } finally {
+                    this.sshKeyLoading = false;
+                }
+            },
+            
+            async deleteSSHKey(index) {
+                if (!confirm('Are you sure you want to delete this SSH key?')) {
+                    return;
+                }
+                
+                try {
+                    await axios.delete(`/api/v1/ssh-keys/${index}`);
+                    await this.loadProfile();
+                } catch (error) {
+                    alert('Failed to delete SSH key');
+                }
+            },
+            
+            cancelAddKey() {
+                this.showAddKeyForm = false;
+                this.sshKeyForm = { name: '', publicKey: '' };
+                this.sshKeyError = '';
+            },
+            
+            logout() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            },
+            
+            formatDate(date) {
+                return new Date(date).toLocaleDateString();
+            },
+            
+            getKeyPreview(key) {
+                return key.length > 50 ? key.substring(0, 50) + '...' : key;
+            }
+        }
+    }).mount('#dashboardApp');
+    </script>
+
+    <style>
+    /* CSS Variables for theming */
+    :root[data-theme="light"] {
+        --bg-primary: #f5f5f5;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #fafafa;
+        --text-primary: #333333;
+        --text-secondary: #666666;
+        --text-muted: #999999;
+        --border-color: #e0e0e0;
+        --border-light: #f0f0f0;
+        --accent-primary: #667eea;
+        --accent-secondary: #764ba2;
+        --success-color: #4caf50;
+        --error-color: #f44336;
+        --warning-color: #ff9800;
+        --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        --shadow-hover: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    :root[data-theme="dark"] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #3a3a3a;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --text-muted: #888888;
+        --border-color: #404040;
+        --border-light: #4a4a4a;
+        --accent-primary: #667eea;
+        --accent-secondary: #764ba2;
+        --success-color: #66bb6a;
+        --error-color: #ef5350;
+        --warning-color: #ffa726;
+        --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        --shadow-hover: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .dashboard-page {
+        min-height: 100vh;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 50vh;
+        color: #666;
+    }
+
+    .loading-container p {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .navbar {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 0;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-brand h3 {
+        margin: 0;
+        color: var(--accent-primary);
+    }
+
+    .nav-user {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nav-user span {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .theme-toggle {
+        min-width: auto !important;
+        padding: 0.5rem !important;
+        margin-right: 0.5rem;
+    }
+
+    .dashboard-content {
+        padding: 2rem 0;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .section {
+        margin-bottom: 3rem;
+    }
+
+    .section h2 {
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+    .profile-card, .password-card, .ssh-keys-card {
+        background: var(--bg-secondary) !important;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: var(--shadow) !important;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid var(--border-color) !important;
+    }
+
+    .profile-card:hover, .password-card:hover, .ssh-keys-card:hover {
+        box-shadow: var(--shadow-hover) !important;
+    }
+
+    .profile-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .info-item label {
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-item span {
+        color: #333;
+    }
+
+    .password-form {
+        max-width: 400px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .ssh-keys-header {
+        margin-bottom: 2rem;
+    }
+
+    .add-key-form {
+        background: #f9f9f9;
+        padding: 1.5rem;
+        border-radius: 6px;
+        margin-bottom: 2rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .ssh-keys-list {
+        space-y: 1rem;
+    }
+
+    .ssh-key-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+
+    .key-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+    }
+
+    .key-fingerprint {
+        font-family: monospace;
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0.25rem 0;
+    }
+
+    .key-preview {
+        font-family: monospace;
+        color: #999;
+        font-size: 0.8rem;
+        margin: 0.25rem 0;
+    }
+
+    .key-date {
+        color: #999;
+        font-size: 0.8rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #5a6fd8;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-danger-outline {
+        background: transparent;
+        border: 2px solid #f56565;
+        color: #f56565;
+    }
+
+    .btn-danger-outline:hover {
+        background: #f56565;
+        color: white;
+    }
+
+    .alert {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+    }
+
+    .alert-error {
+        background-color: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+
+    .alert-success {
+        background-color: #efe;
+        color: #3c3;
+        border: 1px solid #cfc;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .text-muted {
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 1rem;
+        }
+        
+        .nav-container {
+            padding: 0 1rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .nav-user {
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: center;
+        }
+        
+        .profile-info {
+            grid-template-columns: 1fr;
+        }
+        
+        .ssh-key-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+
+    /* Form Elements Theming */
+    .form-control {
+        background: var(--bg-tertiary) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color) !important;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--accent-primary) !important;
+        background: var(--bg-secondary) !important;
+    }
+
+    .form-group label {
+        color: var(--text-secondary) !important;
+    }
+
+    .info-item label {
+        color: var(--text-secondary) !important;
+    }
+
+    .info-item span {
+        color: var(--text-primary) !important;
+    }
+
+    /* Button Theming */
+    .btn-outline {
+        border-color: var(--border-color) !important;
+        color: var(--text-secondary) !important;
+    }
+
+    .btn-outline:hover {
+        background: var(--bg-tertiary) !important;
+        color: var(--text-primary) !important;
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        border-color: var(--border-light) !important;
+        border-top-color: var(--accent-primary) !important;
+    }
+
+    /* SSH Key Items */
+    .ssh-key-item {
+        background: var(--bg-tertiary) !important;
+        border: 1px solid var(--border-color) !important;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .ssh-key-item:hover {
+        background: var(--bg-secondary) !important;
+    }
+
+    .key-info h4 {
+        color: var(--text-primary) !important;
+    }
+
+    .key-fingerprint, .key-preview {
+        color: var(--text-secondary) !important;
+    }
+
+    /* Alerts */
+    .alert-error {
+        background: rgba(244, 67, 54, 0.1) !important;
+        color: var(--error-color) !important;
+        border-color: var(--error-color) !important;
+    }
+
+    .alert-success {
+        background: rgba(76, 175, 80, 0.1) !important;
+        color: var(--success-color) !important;
+        border-color: var(--success-color) !important;
+    }
+
+    .success-message {
+        color: var(--success-color) !important;
+    }
+
+    .empty-state {
+        color: var(--text-muted) !important;
+    }
+
+    .loading-container {
+        color: var(--text-secondary) !important;
+    }
+    </style>
+</body>
+</html>

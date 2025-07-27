@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/material.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div class="reset-page" id="resetApp">
+        <div class="reset-container">
+            <div class="reset-card">
+                <div class="reset-header">
+                    <h2>Reset Password</h2>
+                    <p>Reset your {{.site_name}} account password</p>
+                </div>
+                
+                <!-- Step 1: Request Reset -->
+                <div v-if="step === 1" class="reset-step">
+                    <form @submit.prevent="requestReset" class="reset-form">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                v-model="username" 
+                                required 
+                                class="form-control"
+                                :disabled="loading"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Verification Method</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" v-model="method" value="email" :disabled="loading">
+                                    <i class="material-icons">email</i>
+                                    Email
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" v-model="method" value="sms" :disabled="loading">
+                                    <i class="material-icons">sms</i>
+                                    SMS
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div v-if="error" class="alert alert-error">
+                            {{`{{ error }}`}}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-large btn-block" :disabled="loading">
+                            <span v-if="loading" class="loading-spinner"></span>
+                            <i v-else class="material-icons">send</i>
+                            {{`{{ loading ? 'Sending...' : 'Send Verification Code' }}`}}
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Step 2: Verify Code and Reset -->
+                <div v-if="step === 2" class="reset-step">
+                    <div class="success-message">
+                        <i class="material-icons">check_circle</i>
+                        <p>Verification code sent to your {{`{{ method }}`}}</p>
+                    </div>
+                    
+                    <form @submit.prevent="confirmReset" class="reset-form">
+                        <div class="form-group">
+                            <label for="code">Verification Code</label>
+                            <input 
+                                type="text" 
+                                id="code" 
+                                v-model="code" 
+                                required 
+                                class="form-control"
+                                placeholder="Enter 6-digit code"
+                                maxlength="6"
+                                :disabled="loading"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input 
+                                type="password" 
+                                id="newPassword" 
+                                v-model="newPassword" 
+                                required 
+                                minlength="3"
+                                maxlength="30"
+                                class="form-control"
+                                :disabled="loading"
+                            >
+                            <small class="form-text text-muted">
+                                Password must be 3-30 characters long
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                id="confirmPassword" 
+                                v-model="confirmPassword" 
+                                required 
+                                class="form-control"
+                                :disabled="loading"
+                            >
+                        </div>
+                        
+                        <div v-if="error" class="alert alert-error">
+                            {{`{{ error }}`}}
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" :disabled="loading">
+                                <span v-if="loading" class="loading-spinner"></span>
+                                <i v-else class="material-icons">lock_reset</i>
+                                {{`{{ loading ? 'Resetting...' : 'Reset Password' }}`}}
+                            </button>
+                            <button type="button" @click="goBack" class="btn btn-outline">
+                                Back
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Step 3: Success -->
+                <div v-if="step === 3" class="reset-step">
+                    <div class="success-message">
+                        <i class="material-icons">check_circle</i>
+                        <h3>Password Reset Successfully</h3>
+                        <p>Your password has been reset. You can now log in with your new password.</p>
+                        <a href="/login" class="btn btn-primary">
+                            <i class="material-icons">login</i>
+                            Go to Login
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="reset-footer">
+                    <a href="/login">Back to Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="/static/js/app.js"></script>
+
+    <script>
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                step: 1,
+                username: '',
+                method: 'email',
+                code: '',
+                newPassword: '',
+                confirmPassword: '',
+                token: '',
+                loading: false,
+                error: ''
+            }
+        },
+        methods: {
+            async requestReset() {
+                this.loading = true;
+                this.error = '';
+                
+                try {
+                    const response = await axios.post('/api/v1/reset-password', {
+                        username: this.username,
+                        method: this.method
+                    });
+                    
+                    this.token = response.data.token;
+                    this.step = 2;
+                } catch (error) {
+                    this.error = error.response?.data?.error || 'Failed to send verification code';
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            async confirmReset() {
+                if (this.newPassword !== this.confirmPassword) {
+                    this.error = 'Passwords do not match';
+                    return;
+                }
+                
+                this.loading = true;
+                this.error = '';
+                
+                try {
+                    await axios.post('/api/v1/reset-password/confirm', {
+                        token: this.token,
+                        code: this.code,
+                        newPassword: this.newPassword
+                    });
+                    
+                    this.step = 3;
+                } catch (error) {
+                    this.error = error.response?.data?.error || 'Failed to reset password';
+                } finally {
+                    this.loading = false;
+                }
+            },
+            
+            goBack() {
+                this.step = 1;
+                this.code = '';
+                this.newPassword = '';
+                this.confirmPassword = '';
+                this.token = '';
+                this.error = '';
+            }
+        }
+    }).mount('#resetApp');
+    </script>
+
+    <style>
+    .reset-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .reset-container {
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .reset-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .reset-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .reset-header h2 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .reset-header p {
+        color: #666;
+        margin: 0;
+    }
+
+    .reset-step {
+        min-height: 200px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .radio-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .radio-label:hover {
+        border-color: #667eea;
+    }
+
+    .radio-label input[type="radio"] {
+        margin: 0;
+    }
+
+    .radio-label input[type="radio"]:checked + i {
+        color: #667eea;
+    }
+
+    .success-message {
+        text-align: center;
+        padding: 2rem 0;
+    }
+
+    .success-message i {
+        font-size: 48px;
+        color: #4caf50;
+        margin-bottom: 1rem;
+    }
+
+    .success-message h3 {
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .success-message p {
+        color: #666;
+        margin-bottom: 2rem;
+    }
+
+    .btn-block {
+        width: 100%;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        flex-direction: column;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .alert {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+    }
+
+    .alert-error {
+        background-color: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        justify-content: center;
+    }
+
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #5a6fd8;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+
+    .reset-footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .reset-footer a {
+        color: #667eea;
+        text-decoration: none;
+    }
+
+    .reset-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .text-muted {
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .reset-container {
+            padding: 0 1rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .radio-group {
+            flex-direction: column;
+        }
+    }
+    </style>
+</body>
+</html>
