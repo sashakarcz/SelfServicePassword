@@ -48,20 +48,64 @@ git clone <repository-url>
 cd ldap-self-service
 ```
 
-2. The application is pre-configured for your Starnix environment in `config.yaml`:
+2. The application needs to be configured in a `config.yaml`:
 ```yaml
-ldap:
-  host: "192.168.1.24"
-  port: 389
-  bind_dn: "uid=sspr,cn=users,cn=accounts,dc=starnix,dc=net"
-  bind_password: "astrognome1007"
-  user_base_dn: "cn=users,cn=accounts,dc=starnix,dc=net"
+# LDAP Self-Service Portal Configuration
+# Copy this file to config.yaml and customize for your environment
 
+# Server configuration
+port: "8081"
+session_secret: "change-me-to-a-random-secret-key"
+site_name: "Your Organization Self Service Portal"
+
+# LDAP server configuration
+ldap:
+  host: "ldap.example.com"
+  port: 389
+  use_tls: false
+  base_dn: "dc=example,dc=com"
+  bind_dn: "uid=service-account,cn=users,cn=accounts,dc=example,dc=com"
+  bind_password: "service-account-password"
+  user_filter: "(&(objectClass=*)(uid=%s))"
+  user_base_dn: "cn=users,cn=accounts,dc=example,dc=com"
+  ssh_key_attr: "ipaSshPubKey"  # For FreeIPA, use "sshPublicKey" for other LDAP servers
+  email_attr: "mail"
+  phone_attr: "mobile"
+
+# Email configuration (for password reset notifications)
 email:
   smtp_host: "smtp.gmail.com"
-  smtp_user: "info@starnix.net"
-  from_email: "info@starnix.net"
-  from_name: "Starnix Self Service Password"
+  smtp_port: 587
+  smtp_user: "your-email@gmail.com"
+  smtp_password: "your-app-password"  # Use app password for Gmail
+  from_email: "noreply@example.com"
+  from_name: "Self Service Portal"
+
+# SMS configuration using Apprise API with VoIP.ms
+sms:
+  provider: "apprise"  # Options: mock, apprise
+  api_key: "https://your-apprise-server.com/notify"  # Apprise API endpoint URL
+  api_secret: "voipms-username:voipms-password"  # VoIP.ms credentials
+  from_phone: "1234567890"  # VoIP.ms from phone number
+
+# JWT token configuration
+jwt:
+  secret: "jwt-secret-key-change-me"
+  expiration: 3600  # 1 hour in seconds
+
+# Password policy settings
+password_policy:
+  min_length: 8
+  max_length: 128
+  min_lower: 1
+  min_upper: 1
+  min_digit: 1
+  min_special: 1
+  special_chars: "!@#$%^&*()_+-=[]{}|;:,.<>?"
+  no_reuse: false
+  diff_login: true
+  complexity: 3
+  use_pwned_passwords: false
 ```
 
 3. Start the application:
