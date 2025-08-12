@@ -45,7 +45,7 @@ A modern, secure web application that allows users to manage their LDAP accounts
 1. Clone the repository:
 ```bash
 git clone https://github.com/sashakarcz/SelfServicePassword
-cd ldap-self-service
+cd SelfServicePassword
 ```
 
 2. The application needs to be configured in a `config.yaml`:
