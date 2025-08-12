@@ -21,6 +21,7 @@ type SMSService struct {
 type SMSVerificationCode struct {
 	Code      string
 	Phone     string
+	Username  string
 	ExpiresAt time.Time
 	Token     string
 }
@@ -35,7 +36,7 @@ func NewSMSService(cfg *config.Config) *SMSService {
 	return service
 }
 
-func (s *SMSService) SendVerificationCode(phone string) (string, error) {
+func (s *SMSService) SendVerificationCode(phone, username string) (string, error) {
 	code, err := s.generateCode()
 	if err != nil {
 		return "", err
@@ -50,6 +51,7 @@ func (s *SMSService) SendVerificationCode(phone string) (string, error) {
 	s.codes[token] = &SMSVerificationCode{
 		Code:      code,
 		Phone:     phone,
+		Username:  username,
 		ExpiresAt: time.Now().Add(10 * time.Minute),
 		Token:     token,
 	}
@@ -113,7 +115,7 @@ func (s *SMSService) sendAppriseSMS(phone, message string) error {
 	username := s.config.SMS.APISecret // VoIP.ms credentials
 	fromPhone := s.config.SMS.FromPhone // From phone number
 	
-	// Construct VoIP.ms URL: voipms://username:password@api.voip.ms/from_number/to_number
+	// Construct VoIP.ms URL: voipms://username:password@karcz.me/from_number/to_number
 	voipmsURL := fmt.Sprintf("voipms://%s@karcz.me/%s/%s", username, fromPhone, phone)
 	
 	// Prepare form data
@@ -121,8 +123,17 @@ func (s *SMSService) sendAppriseSMS(phone, message string) error {
 	data.Set("body", message)
 	data.Set("urls", voipmsURL)
 	
+	// Create HTTP client with timeout and force HTTP/1.1 (Apprise server has HTTP/2 issues)
+	transport := &http.Transport{
+		ForceAttemptHTTP2: false, // Force HTTP/1.1
+	}
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: transport,
+	}
+	
 	// Make HTTP POST request
-	resp, err := http.PostForm(apiURL, data)
+	resp, err := client.PostForm(apiURL, data)
 	if err != nil {
 		return fmt.Errorf("failed to send SMS via Apprise API: %w", err)
 	}
@@ -136,6 +147,9 @@ func (s *SMSService) sendAppriseSMS(phone, message string) error {
 	
 	// Check status code
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 424 {
+			return fmt.Errorf("VoIP.ms SMS failed (check credentials/phone format): %s", string(body))
+		}
 		return fmt.Errorf("Apprise API returned status %d: %s", resp.StatusCode, string(body))
 	}
 	
@@ -186,4 +200,28 @@ func (s *SMSService) cleanupExpiredCodes() {
 		}
 		s.mutex.Unlock()
 	}
+}
+
+func (s *SMSService) HasToken(token string) bool {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	
+	entry, exists := s.codes[token]
+	if !exists {
+		return false
+	}
+	
+	return time.Now().Before(entry.ExpiresAt)
+}
+
+func (s *SMSService) GetUsernameForToken(token string) string {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	
+	entry, exists := s.codes[token]
+	if !exists || time.Now().After(entry.ExpiresAt) {
+		return ""
+	}
+	
+	return entry.Username
 }
