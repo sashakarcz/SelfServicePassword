@@ -44,7 +44,7 @@ A modern, secure web application that allows users to manage their LDAP accounts
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/sashakarcz/SelfServicePassword
 cd ldap-self-service
 ```
 
@@ -163,7 +163,7 @@ email:
 ### SMS Configuration
 ```yaml
 sms:
-  provider: "mock"  # Options: mock, twilio
+  provider: "mock"  # Options: mock, apprise
   api_key: ""
   api_secret: ""
   from_phone: "+1234567890"
